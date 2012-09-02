@@ -1,0 +1,9 @@
+<resources>
+
+    <string name="app_name">Frapp</string>
+    <string name="menu_settings">Settings</string>
+    <string name="title_activity_posts">Posts</string>
+    <string name="avatar_image_description">Avatar Image</string>
+    <string name="title_activity_authorization">Authorizing...</string>
+
+</resources>
