@@ -25,12 +25,12 @@
             android:layout_height="match_parent" >
 
             <LinearLayout
-                android:id="@+id/tab1"
+                android:id="@+id/my_stream_tab"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" >
 
                 <ListView
-                    android:id="@+id/postsListView"
+                    android:id="@+id/my_stream_list_view"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:choiceMode="singleChoice"
@@ -44,7 +44,7 @@
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/tab2"
+                android:id="@+id/mentions_tab"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" >
             </LinearLayout>

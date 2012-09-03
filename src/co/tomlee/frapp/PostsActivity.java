@@ -4,6 +4,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import android.app.AlertDialog;
 import android.app.TabActivity;
@@ -26,7 +27,11 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TabHost;
+import co.tomlee.frapp.appnet.AppNetClient;
 import co.tomlee.frapp.model.Post;
+import co.tomlee.frapp.task.AddPostTask;
+import co.tomlee.frapp.task.PostsBeforeTask;
+import co.tomlee.frapp.task.RecentPostsTask;
 
 /**
  * This is the work horse of the application. Responsible for browsing the user's timeline,
@@ -55,14 +60,13 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 	private static final String TAB_MENTIONS_TAG = "mentions";
 	private static final String TAB_MENTIONS_TITLE = "Mentions";
 	
-	private static final String TAB_GLOBAL_TAG = "global";
-	private static final String TAB_GLOBAL_TITLE = "Global";
-	
 	private String accessToken;
-	private ListView postsListView;
-	private PostsAdapter postAdapter;
+	private ListView myStreamListView;
+	private PostsAdapter myStreamPostsAdapter;
+	private PostsAdapter postsAdapter;
 	private PollThread pollThread;
 	private TabHost tabHost;
+	private final HashMap<String, PostsAdapter> tabsPostsAdapters = new HashMap<String, PostsAdapter>();
 
 	/**
 	 * The maximum number of posts we'll load into memory.
@@ -80,18 +84,26 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_posts);
         
+        myStreamPostsAdapter = new PostsAdapter(this, R.layout.postlistitem, R.layout.waitlistitem);
+        
+        tabsPostsAdapters.put(TAB_MY_STREAM_TAG, myStreamPostsAdapter);
         
         tabHost = getTabHost();
-        tabHost.addTab(tabHost.newTabSpec(TAB_MY_STREAM_TAG).setIndicator(TAB_MY_STREAM_TITLE).setContent(R.id.tab1));
-        tabHost.addTab(tabHost.newTabSpec(TAB_MENTIONS_TAG).setIndicator(TAB_MENTIONS_TITLE).setContent(R.id.tab2));
-        tabHost.addTab(tabHost.newTabSpec(TAB_GLOBAL_TAG).setIndicator(TAB_GLOBAL_TITLE).setContent(R.id.tab3));
+        tabHost.addTab(tabHost.newTabSpec(TAB_MY_STREAM_TAG).setIndicator(TAB_MY_STREAM_TITLE).setContent(R.id.my_stream_tab));
+        tabHost.addTab(tabHost.newTabSpec(TAB_MENTIONS_TAG).setIndicator(TAB_MENTIONS_TITLE).setContent(R.id.mentions_tab));
+        tabHost.setOnTabChangedListener(new TabHost.OnTabChangeListener() {
+			@Override
+			public void onTabChanged(String tabId) {
+				postsAdapter = tabsPostsAdapters.get(tabId);
+			}
+		});
+        postsAdapter = myStreamPostsAdapter;
         
-        postAdapter = new PostsAdapter(this, R.layout.postlistitem, R.layout.waitlistitem);
-        postsListView = (ListView) findViewById(R.id.postsListView);
-        postsListView.setAdapter(postAdapter);
-        postsListView.setOnScrollListener(this);
-        postsListView.setOnItemClickListener(this);
-        postsListView.setOnItemLongClickListener(this);
+        myStreamListView = (ListView) findViewById(R.id.my_stream_list_view);
+        myStreamListView.setAdapter(myStreamPostsAdapter);
+        myStreamListView.setOnScrollListener(this);
+        myStreamListView.setOnItemClickListener(this);
+        myStreamListView.setOnItemLongClickListener(this);
     }
 
     /*
@@ -116,12 +128,11 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
         accessToken = prefs.getString(Pref.PREF_ACCESS_TOKEN, null);
         
         if (accessToken != null) {
-        	// Log.v(TAG, "Loading initial posts");
-            new MorePostsTask(MorePostsTask.Type.BEFORE, postAdapter, true, accessToken).execute();
+        	final AppNetClient client = new AppNetClient(accessToken);
+        	
+            new RecentPostsTask(postsAdapter, client).execute();
             
-	        // Log.v(TAG, "Starting poll thread");
-	        pollThread = new PollThread(this, postAdapter, accessToken);
-	        pollThread.setActive(true);
+	        pollThread = new PollThread(this, postsAdapter, client);
 	        pollThread.start();
         }
         else {
@@ -137,19 +148,16 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
      */
     @Override
     protected void onPause() {
-    	postAdapter.setPosts(new ArrayList<Post>());
-    	postAdapter.notifyDataSetChanged();
+    	postsAdapter.setPosts(new ArrayList<Post>());
+    	postsAdapter.notifyDataSetChanged();
     	
     	if (pollThread != null) {
-	    	// Log.v(TAG, "Asking poll thread to terminate");
-	    	pollThread.setActive(false);
 	    	pollThread.interrupt();
 	    	try {
 	    		pollThread.join(2000);
-	    		// Log.v(TAG, "Poll thread stopped");
 	    	}
 	    	catch (InterruptedException e) {
-	    		// Log.e(TAG, "Interrupted waiting for PollThread to finish");
+	    		// XXX
 	    	}
 	    	finally {
 	    		pollThread = null;
@@ -183,12 +191,11 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 	public void onScroll(AbsListView view, int firstVisibleItem,
 			int visibleItemCount, int totalItemCount) {
 		final boolean needMore = (firstVisibleItem + visibleItemCount >= totalItemCount) &&
-									!postAdapter.getEndOfTime() &&
-									postAdapter.getPosts().size() < MAX_POSTS;
+									!postsAdapter.getEndOfTime() &&
+									postsAdapter.getPosts().size() < MAX_POSTS;
 		
-		if (!postAdapter.isLoading() && needMore) {
-			final MorePostsTask task = new MorePostsTask(MorePostsTask.Type.BEFORE, postAdapter, accessToken);
-			task.execute();
+		if (!postsAdapter.isLoading() && needMore) {
+			new PostsBeforeTask(postsAdapter, new AppNetClient(accessToken), postsAdapter.getOldestPostId()).execute();
 		}
 	}
 
@@ -247,7 +254,7 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 				public void onClick(DialogInterface dialog, int which) {
 					dialog.dismiss();
 					
-					new AddPostTask(post != null ? post.getId() : null, postAdapter, accessToken).execute(view.getText().toString());
+					new AddPostTask(post != null ? post.getId() : null, postsAdapter, accessToken).execute(view.getText().toString());
 				}
 			})
 			.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -279,8 +286,8 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 	 */
 	@Override
 	public void onItemClick(AdapterView<?> view, View parent, int pos, long id) {
-		if (pos < postAdapter.getPosts().size()) {
-			final Post post = postAdapter.getPosts().get(pos);
+		if (pos < postsAdapter.getPosts().size()) {
+			final Post post = postsAdapter.getPosts().get(pos);
 			showPostEditor(post);
 		}
 	}
@@ -295,8 +302,8 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 		// We may have one extra item in the PostAdapter for
 		// our "loading" item, so check that `pos` is valid.
 		//
-		if (pos < postAdapter.getPosts().size()) {
-			final Post post = postAdapter.getPosts().get(pos);
+		if (pos < postsAdapter.getPosts().size()) {
+			final Post post = postsAdapter.getPosts().get(pos);
 			showPostContextMenu(post);
 			return true;
 		}

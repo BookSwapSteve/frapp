@@ -38,6 +38,10 @@ public class AppNetClient {
 		this.accessToken = accessToken;
 	}
 	
+	public List<Post> getRecentPosts(final int count) throws AppNetException {
+		return getPosts(null, null, count);
+	}
+	
 	public List<Post> getPostsSince(final String sinceId, final int count) throws AppNetException {
 		return getPosts(null, sinceId, count);
 	}

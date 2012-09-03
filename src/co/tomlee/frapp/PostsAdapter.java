@@ -1,6 +1,7 @@
 package co.tomlee.frapp;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import android.app.Activity;
@@ -10,7 +11,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
-import co.tomlee.frapp.R;
 import co.tomlee.frapp.model.Post;
 
 /**
@@ -119,6 +119,40 @@ public final class PostsAdapter extends BaseAdapter {
 	 */
 	public void setPosts(List<Post> posts) {
 		this.posts = posts;
+	}
+	
+	/**
+	 * Add all the posts in the given collection at the start of the adapter.
+	 */
+	public void addNewerPosts(final Collection<Post> posts) {
+		this.posts.addAll(0, posts);
+	}
+	
+	/**
+	 * Add all the posts in the given collection at the end of the adapter.
+	 */
+	public void addOlderPosts(final Collection<Post> posts) {
+		this.posts.addAll(posts);
+	}
+	
+	/**
+	 * Get the ID of the newest post in this adapter.
+	 */
+	public String getNewestPostId() {
+		if (posts.size() > 0) {
+			return posts.get(0).getId();
+		}
+		return null;
+	}
+	
+	/**
+	 * Get the ID of the oldest post in this adapter.
+	 */
+	public String getOldestPostId() {
+		if (posts.size() > 0) {
+			return posts.get(posts.size()-1).getId();
+		}
+		return null;
 	}
 	
 	/*

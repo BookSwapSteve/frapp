@@ -1,5 +1,7 @@
 package co.tomlee.frapp;
 
+import co.tomlee.frapp.appnet.AppNetClient;
+import co.tomlee.frapp.task.PostsSinceTask;
 import android.app.Activity;
 
 /**
@@ -7,8 +9,8 @@ import android.app.Activity;
  */
 class PollThread extends Thread {
 	private final Activity activity;
-	private final PostsAdapter postAdapter;
-	private final String accessToken;
+	private final PostsAdapter postsAdapter;
+	private final AppNetClient client;
 	private boolean active;
 	
 	private static final int ONE_SECOND = 1000;
@@ -19,13 +21,13 @@ class PollThread extends Thread {
 	 * Create the PollThread.
 	 * 
 	 * @param activity
-	 * @param adapter
+	 * @param postsAdapter
 	 */
-	public PollThread(final Activity activity, final PostsAdapter adapter, final String accessToken) {
+	public PollThread(final Activity activity, final PostsAdapter postsAdapter, final AppNetClient client) {
 		super("Frapp Poll Thread");
 		this.activity = activity;
-		this.postAdapter = adapter;
-		this.accessToken = accessToken;
+		this.postsAdapter = postsAdapter;
+		this.client = client;
 	}
 	
 	/**
@@ -43,15 +45,23 @@ class PollThread extends Thread {
 	 * (non-Javadoc)
 	 * @see java.lang.Thread#start()
 	 */
+	@Override
 	public void start() {
 		setActive(true);
 		super.start();
+	}
+	
+	@Override
+	public void interrupt() {
+		setActive(false);
+		super.interrupt();
 	}
 	
 	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Thread#run()
 	 */
+	@Override
 	public void run() {
 		final TaskRunnable r = new TaskRunnable();
 		
@@ -94,7 +104,7 @@ class PollThread extends Thread {
 	 * Executes a MorePostsTask on the main UI thread.
 	 */
 	private final class TaskRunnable implements Runnable {
-		private MorePostsTask task = create();
+		private PostsSinceTask task = create();
 		
 		/**
 		 * Ask the task to cancel.
@@ -118,8 +128,8 @@ class PollThread extends Thread {
 		 * Create a new MorePostsTask with the appropriate parameters to
 		 * pull posts we haven't seen yet.
 		 */
-		private MorePostsTask create() {
-			return new MorePostsTask(MorePostsTask.Type.SINCE, postAdapter, accessToken);
+		private PostsSinceTask create() {
+			return new PostsSinceTask(postsAdapter, client, postsAdapter.getNewestPostId());
 		}
 	}
 }

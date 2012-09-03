@@ -1,6 +1,7 @@
-package co.tomlee.frapp;
+package co.tomlee.frapp.task;
 
 import android.os.AsyncTask;
+import co.tomlee.frapp.PostsAdapter;
 import co.tomlee.frapp.appnet.AppNetClient;
 import co.tomlee.frapp.appnet.AppNetException;
 import co.tomlee.frapp.model.Post;
@@ -10,7 +11,7 @@ import co.tomlee.frapp.model.Post;
  * 
  * Invoked to add a new post or reply.
  */
-class AddPostTask extends AsyncTask<String, Void, Post> {
+public final class AddPostTask extends AsyncTask<String, Void, Post> {
 	private final String replyTo;
 	private final PostsAdapter postAdapter;
 	private final String accessToken;
