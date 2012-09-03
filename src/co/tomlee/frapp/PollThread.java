@@ -1,6 +1,7 @@
 package co.tomlee.frapp;
 
 import co.tomlee.frapp.appnet.AppNetClient;
+import co.tomlee.frapp.appnet.Stream;
 import co.tomlee.frapp.task.PostsSinceTask;
 import android.app.Activity;
 
@@ -9,6 +10,7 @@ import android.app.Activity;
  */
 class PollThread extends Thread {
 	private final Activity activity;
+	private final Stream stream;
 	private final PostsAdapter postsAdapter;
 	private final AppNetClient client;
 	private boolean active;
@@ -23,9 +25,10 @@ class PollThread extends Thread {
 	 * @param activity
 	 * @param postsAdapter
 	 */
-	public PollThread(final Activity activity, final PostsAdapter postsAdapter, final AppNetClient client) {
+	public PollThread(final Activity activity, final Stream stream, final PostsAdapter postsAdapter, final AppNetClient client) {
 		super("Frapp Poll Thread");
 		this.activity = activity;
+		this.stream = stream;
 		this.postsAdapter = postsAdapter;
 		this.client = client;
 	}
@@ -76,6 +79,8 @@ class PollThread extends Thread {
 				}
 			}
 			
+			activity.runOnUiThread(r);
+			
 			try {
 				Thread.sleep(FIVE_MINUTES);
 			}
@@ -83,19 +88,6 @@ class PollThread extends Thread {
 				//
 				// TODO resume sleeping for remaining time if still active.
 				//
-			}
-			
-			//
-			// If we were interrupted, we've probably been stopped.
-			//
-			// Don't ask for more posts if so.
-			//
-			boolean active;
-			synchronized (this) {
-				active = this.active;
-			}
-			if (active) {
-				activity.runOnUiThread(r);
 			}
 		}
 	}
@@ -129,7 +121,7 @@ class PollThread extends Thread {
 		 * pull posts we haven't seen yet.
 		 */
 		private PostsSinceTask create() {
-			return new PostsSinceTask(postsAdapter, client, postsAdapter.getNewestPostId());
+			return new PostsSinceTask(stream, postsAdapter, client, postsAdapter.getNewestPostId());
 		}
 	}
 }

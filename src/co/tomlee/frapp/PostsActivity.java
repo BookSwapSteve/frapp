@@ -28,10 +28,10 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TabHost;
 import co.tomlee.frapp.appnet.AppNetClient;
+import co.tomlee.frapp.appnet.Stream;
 import co.tomlee.frapp.model.Post;
 import co.tomlee.frapp.task.AddPostTask;
 import co.tomlee.frapp.task.PostsBeforeTask;
-import co.tomlee.frapp.task.RecentPostsTask;
 
 /**
  * This is the work horse of the application. Responsible for browsing the user's timeline,
@@ -54,10 +54,8 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 	 */
 	private static final String OAUTH_REDIRECT_URI = "frapp://register";
 	
-	private static final String TAB_MY_STREAM_TAG = "my-stream";
 	private static final String TAB_MY_STREAM_TITLE = "My Stream";
 	
-	private static final String TAB_MENTIONS_TAG = "mentions";
 	private static final String TAB_MENTIONS_TITLE = "Mentions";
 	
 	private String accessToken;
@@ -66,9 +64,13 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 	private PostsAdapter myStreamPostsAdapter;
 	private PostsAdapter mentionsPostsAdapter;
 	private PostsAdapter postsAdapter;
+	private Stream stream;
 	private PollThread pollThread;
 	private TabHost tabHost;
-	private final HashMap<String, PostsAdapter> tabsPostsAdapters = new HashMap<String, PostsAdapter>();
+	
+	private AppNetClient client;
+	
+	private final HashMap<Stream, PostsAdapter> streamAdapters = new HashMap<Stream, PostsAdapter>();
 
 	/**
 	 * The maximum number of posts we'll load into memory.
@@ -89,19 +91,23 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
         myStreamPostsAdapter = new PostsAdapter(this, R.layout.postlistitem, R.layout.waitlistitem);
         mentionsPostsAdapter = new PostsAdapter(this, R.layout.postlistitem, R.layout.waitlistitem);
         
-        tabsPostsAdapters.put(TAB_MY_STREAM_TAG, myStreamPostsAdapter);
-        tabsPostsAdapters.put(TAB_MENTIONS_TAG, mentionsPostsAdapter);
+        streamAdapters.put(Stream.MY_STREAM, myStreamPostsAdapter);
+        streamAdapters.put(Stream.MENTIONS_STREAM, mentionsPostsAdapter);
         
         tabHost = getTabHost();
-        tabHost.addTab(tabHost.newTabSpec(TAB_MY_STREAM_TAG).setIndicator(TAB_MY_STREAM_TITLE).setContent(R.id.my_stream_tab));
-        tabHost.addTab(tabHost.newTabSpec(TAB_MENTIONS_TAG).setIndicator(TAB_MENTIONS_TITLE).setContent(R.id.mentions_tab));
+        tabHost.addTab(tabHost.newTabSpec(Stream.MY_STREAM.getPath()).setIndicator(TAB_MY_STREAM_TITLE).setContent(R.id.my_stream_tab));
+        tabHost.addTab(tabHost.newTabSpec(Stream.MENTIONS_STREAM.getPath()).setIndicator(TAB_MENTIONS_TITLE).setContent(R.id.mentions_tab));
         tabHost.setOnTabChangedListener(new TabHost.OnTabChangeListener() {
 			@Override
 			public void onTabChanged(String tabId) {
-				postsAdapter = tabsPostsAdapters.get(tabId);
+				stopPollThread();
+				stream = new Stream(tabId);
+				postsAdapter = streamAdapters.get(stream);
+				startPollThread();
 			}
 		});
         postsAdapter = myStreamPostsAdapter;
+        stream = Stream.MY_STREAM;
         
         myStreamListView = (ListView) findViewById(R.id.my_stream_list_view);
         myStreamListView.setAdapter(myStreamPostsAdapter);
@@ -138,12 +144,9 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
         accessToken = prefs.getString(Pref.PREF_ACCESS_TOKEN, null);
         
         if (accessToken != null) {
-        	final AppNetClient client = new AppNetClient(accessToken);
+        	client = new AppNetClient(accessToken);
         	
-            new RecentPostsTask(postsAdapter, client).execute();
-            
-	        pollThread = new PollThread(this, postsAdapter, client);
-	        pollThread.start();
+            startPollThread();
         }
         else {
         	requestAuthorization();
@@ -158,21 +161,7 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
      */
     @Override
     protected void onPause() {
-    	postsAdapter.setPosts(new ArrayList<Post>());
-    	postsAdapter.notifyDataSetChanged();
-    	
-    	if (pollThread != null) {
-	    	pollThread.interrupt();
-	    	try {
-	    		pollThread.join(2000);
-	    	}
-	    	catch (InterruptedException e) {
-	    		// XXX
-	    	}
-	    	finally {
-	    		pollThread = null;
-	    	}
-    	}
+    	stopPollThread();
     	
     	accessToken = null;
     	
@@ -205,7 +194,7 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 									postsAdapter.getPosts().size() < MAX_POSTS;
 		
 		if (!postsAdapter.isLoading() && needMore) {
-			new PostsBeforeTask(postsAdapter, new AppNetClient(accessToken), postsAdapter.getOldestPostId()).execute();
+			new PostsBeforeTask(stream, postsAdapter, new AppNetClient(accessToken), postsAdapter.getOldestPostId()).execute();
 		}
 	}
 
@@ -215,6 +204,29 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 	 */
 	@Override
 	public void onScrollStateChanged(AbsListView view, int scrollState) {}
+	
+	private void startPollThread() {
+		pollThread = new PollThread(this, stream, postsAdapter, client);
+		pollThread.start();
+	}
+	
+	private void stopPollThread() {
+    	postsAdapter.setPosts(new ArrayList<Post>());
+    	postsAdapter.notifyDataSetChanged();
+    	
+    	if (pollThread != null) {
+	    	pollThread.interrupt();
+	    	try {
+	    		pollThread.join(2000);
+	    	}
+	    	catch (InterruptedException e) {
+	    		// XXX
+	    	}
+	    	finally {
+	    		pollThread = null;
+	    	}
+    	}
+	}
 	
 	/**
 	 * Ask the user to authorize access to their data on the app.net web site.

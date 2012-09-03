@@ -1,6 +1,8 @@
 package co.tomlee.frapp.task;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import co.tomlee.frapp.PostsAdapter;
 import co.tomlee.frapp.appnet.AppNetClient;
@@ -12,15 +14,19 @@ public final class PostsBeforeTask extends AbstractPostsTask {
 	private final AppNetClient client;
 	private final String id;
 	
-	public PostsBeforeTask(final PostsAdapter postsAdapter, final AppNetClient client, final String id) {
-		super(postsAdapter);
+	public PostsBeforeTask(final Stream stream, final PostsAdapter postsAdapter, final AppNetClient client, final String id) {
+		this(new HashMap<Stream, PostsAdapter>() {{ put(stream, postsAdapter); }}, client, id);
+	}
+	
+	public PostsBeforeTask(final Map<Stream, PostsAdapter> streamAdapters, final AppNetClient client, final String id) {
+		super(streamAdapters);
 		this.client = client;
 		this.id = id;
 	}
 
 	@Override
-	protected List<Post> getPosts(final int batchSize) throws AppNetException {
-		return client.getPostsBefore(Stream.MY_STREAM, id, batchSize);
+	protected List<Post> getPosts(final Stream stream, final int batchSize) throws AppNetException {
+		return client.getPostsBefore(stream, id, batchSize);
 	}
 
 	@Override
