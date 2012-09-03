@@ -58,6 +58,8 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 	
 	private static final String TAB_MENTIONS_TITLE = "Mentions";
 	
+	private boolean ready = false;
+	
 	private String accessToken;
 	private ListView myStreamListView;
 	private ListView mentionsListView;
@@ -110,11 +112,11 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
         stream = Stream.MY_STREAM;
         
         myStreamListView = (ListView) findViewById(R.id.my_stream_list_view);
-        myStreamListView.setAdapter(myStreamPostsAdapter);
+        myStreamListView.setAdapter(myStreamPostsAdapter);        
         myStreamListView.setOnScrollListener(this);
         myStreamListView.setOnItemClickListener(this);
         myStreamListView.setOnItemLongClickListener(this);
-        
+
         mentionsListView = (ListView) findViewById(R.id.mentions_list_view);
         mentionsListView.setAdapter(mentionsPostsAdapter);
         mentionsListView.setOnScrollListener(this);
@@ -140,6 +142,8 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
      */
     @Override
     protected void onResume() {
+    	super.onResume();
+
         final SharedPreferences prefs = getSharedPreferences(Pref.FILENAME, 0);
         accessToken = prefs.getString(Pref.PREF_ACCESS_TOKEN, null);
         
@@ -152,7 +156,7 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
         	requestAuthorization();
         }
         
-    	super.onResume();
+        ready = true;
     }
     
     /*
@@ -161,6 +165,11 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
      */
     @Override
     protected void onPause() {
+    	ready = false;
+    	
+    	postsAdapter.setPosts(new ArrayList<Post>());
+    	postsAdapter.notifyDataSetChanged();
+    	
     	stopPollThread();
     	
     	accessToken = null;
@@ -189,12 +198,14 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 	@Override
 	public void onScroll(AbsListView view, int firstVisibleItem,
 			int visibleItemCount, int totalItemCount) {
-		final boolean needMore = (firstVisibleItem + visibleItemCount >= totalItemCount) &&
-									!postsAdapter.getEndOfTime() &&
-									postsAdapter.getPosts().size() < MAX_POSTS;
-		
-		if (!postsAdapter.isLoading() && needMore) {
-			new PostsBeforeTask(stream, postsAdapter, new AppNetClient(accessToken), postsAdapter.getOldestPostId()).execute();
+		if (ready) {
+			final boolean needMore = (firstVisibleItem + visibleItemCount >= totalItemCount) &&
+										!postsAdapter.getEndOfTime() &&
+										postsAdapter.getPosts().size() < MAX_POSTS;
+			
+			if (!postsAdapter.isLoading() && needMore) {
+				new PostsBeforeTask(stream, postsAdapter, new AppNetClient(accessToken), postsAdapter.getOldestPostId()).execute();
+			}
 		}
 	}
 
@@ -211,9 +222,6 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 	}
 	
 	private void stopPollThread() {
-    	postsAdapter.setPosts(new ArrayList<Post>());
-    	postsAdapter.notifyDataSetChanged();
-    	
     	if (pollThread != null) {
 	    	pollThread.interrupt();
 	    	try {

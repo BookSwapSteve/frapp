@@ -61,7 +61,9 @@ abstract class AbstractPostsTask extends AsyncTask<String, Void, Map<Stream, Lis
 		try {
 			final HashMap<Stream, List<Post>> map = new HashMap<Stream, List<Post>>();
 			for (Map.Entry<Stream, PostsAdapter> entry : streamAdapters.entrySet()) {
-				map.put(entry.getKey(), getPosts(entry.getKey(), batchSize));
+				final Stream stream = entry.getKey();
+				final List<Post> posts = getPosts(stream, batchSize);
+				map.put(stream, posts);
 			}
 			return map;
 		}

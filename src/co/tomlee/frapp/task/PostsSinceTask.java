@@ -26,7 +26,7 @@ public class PostsSinceTask extends AbstractPostsTask {
 
 	@Override
 	protected List<Post> getPosts(final Stream stream, final int batchSize) throws AppNetException {
-			return client.getPostsSince(stream, id, batchSize);
+		return client.getPostsSince(stream, id, batchSize);
 	}
 	
 	@Override
