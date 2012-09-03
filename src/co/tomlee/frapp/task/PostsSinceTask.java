@@ -6,6 +6,7 @@ import java.util.List;
 import co.tomlee.frapp.PostsAdapter;
 import co.tomlee.frapp.appnet.AppNetClient;
 import co.tomlee.frapp.appnet.AppNetException;
+import co.tomlee.frapp.appnet.Stream;
 import co.tomlee.frapp.model.Post;
 
 public class PostsSinceTask extends AbstractPostsTask {
@@ -20,7 +21,7 @@ public class PostsSinceTask extends AbstractPostsTask {
 
 	@Override
 	protected List<Post> getPosts(final int batchSize) throws AppNetException {
-		return client.getPostsSince(id, batchSize);
+		return client.getPostsSince(Stream.MY_STREAM, id, batchSize);
 	}
 	
 	@Override

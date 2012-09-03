@@ -38,19 +38,19 @@ public class AppNetClient {
 		this.accessToken = accessToken;
 	}
 	
-	public List<Post> getRecentPosts(final int count) throws AppNetException {
-		return getPosts(null, null, count);
+	public List<Post> getRecentPosts(final Stream stream, final int count) throws AppNetException {
+		return getPosts(stream, null, null, count);
 	}
 	
-	public List<Post> getPostsSince(final String sinceId, final int count) throws AppNetException {
-		return getPosts(null, sinceId, count);
+	public List<Post> getPostsSince(final Stream stream, final String sinceId, final int count) throws AppNetException {
+		return getPosts(stream, null, sinceId, count);
 	}
 	
-	public List<Post> getPostsBefore(final String beforeId, final int count) throws AppNetException {
-		return getPosts(beforeId, null, count);
+	public List<Post> getPostsBefore(final Stream stream, final String beforeId, final int count) throws AppNetException {
+		return getPosts(stream, beforeId, null, count);
 	}
 	
-	private List<Post> getPosts(final String beforeId, final String sinceId, final int count) throws AppNetException {
+	private List<Post> getPosts(final Stream stream, final String beforeId, final String sinceId, final int count) throws AppNetException {
 		final ArrayList<NameValuePair> params = new ArrayList<NameValuePair>();
 		if (beforeId != null) {
 			params.add(new BasicNameValuePair("before_id", beforeId));
@@ -64,7 +64,7 @@ public class AppNetClient {
 		params.add(new BasicNameValuePair("include_deleted", "0"));
 		
 		final StringBuilder sb = new StringBuilder();
-		sb.append(baseUrl).append("/stream/0/posts/stream");
+		sb.append(baseUrl).append(stream.getPath());
 		if (params.size() > 0) {
 			sb.append("?").append(URLEncodedUtils.format(params, "utf-8"));
 		}

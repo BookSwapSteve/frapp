@@ -62,7 +62,9 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 	
 	private String accessToken;
 	private ListView myStreamListView;
+	private ListView mentionsListView;
 	private PostsAdapter myStreamPostsAdapter;
+	private PostsAdapter mentionsPostsAdapter;
 	private PostsAdapter postsAdapter;
 	private PollThread pollThread;
 	private TabHost tabHost;
@@ -85,8 +87,10 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
         setContentView(R.layout.activity_posts);
         
         myStreamPostsAdapter = new PostsAdapter(this, R.layout.postlistitem, R.layout.waitlistitem);
+        mentionsPostsAdapter = new PostsAdapter(this, R.layout.postlistitem, R.layout.waitlistitem);
         
         tabsPostsAdapters.put(TAB_MY_STREAM_TAG, myStreamPostsAdapter);
+        tabsPostsAdapters.put(TAB_MENTIONS_TAG, mentionsPostsAdapter);
         
         tabHost = getTabHost();
         tabHost.addTab(tabHost.newTabSpec(TAB_MY_STREAM_TAG).setIndicator(TAB_MY_STREAM_TITLE).setContent(R.id.my_stream_tab));
@@ -104,6 +108,12 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
         myStreamListView.setOnScrollListener(this);
         myStreamListView.setOnItemClickListener(this);
         myStreamListView.setOnItemLongClickListener(this);
+        
+        mentionsListView = (ListView) findViewById(R.id.mentions_list_view);
+        mentionsListView.setAdapter(mentionsPostsAdapter);
+        mentionsListView.setOnScrollListener(this);
+        mentionsListView.setOnItemClickListener(this);
+        mentionsListView.setOnItemLongClickListener(this);
     }
 
     /*

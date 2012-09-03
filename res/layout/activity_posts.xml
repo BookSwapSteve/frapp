@@ -38,15 +38,25 @@
                     android:paddingLeft="20dp"
                     android:paddingRight="20dp"
                     android:dividerHeight="10dp"
-                    android:drawSelectorOnTop="true">
-
-                </ListView>
+                    android:drawSelectorOnTop="true" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/mentions_tab"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" >
+                
+                <ListView
+                    android:id="@+id/mentions_list_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:choiceMode="singleChoice"
+                    android:divider="#00000000"
+                    android:paddingLeft="20dp"
+                    android:paddingRight="20dp"
+                    android:dividerHeight="10dp"
+                    android:drawSelectorOnTop="true" />
+                
             </LinearLayout>
 
             <LinearLayout
