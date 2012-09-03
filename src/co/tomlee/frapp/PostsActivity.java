@@ -284,7 +284,8 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
 				public void onClick(DialogInterface dialog, int which) {
 					dialog.dismiss();
 					
-					new AddPostTask(post != null ? post.getId() : null, postsAdapter, accessToken).execute(view.getText().toString());
+					final String id = (post != null) ? post.getId() : null;
+					new AddPostTask(id, myStreamPostsAdapter, accessToken).execute(view.getText().toString());
 				}
 			})
 			.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
