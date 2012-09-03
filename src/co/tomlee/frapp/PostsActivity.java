@@ -5,8 +5,8 @@ import java.net.URLEncoder;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 
-import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.TabActivity;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
@@ -25,14 +25,18 @@ import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TabHost;
 import co.tomlee.frapp.model.Post;
 
 /**
  * This is the work horse of the application. Responsible for browsing the user's timeline,
  * handling input events relating to adding posts & replying to others, spinning up a PollThread,
  * etc. etc. etc.
+ * 
+ * XXX TabActivity is deprecated, but ActionBar is unsupported 'til Honeycomb (v11).
  */
-public class PostsActivity extends Activity implements OnScrollListener, OnMenuItemClickListener, OnItemClickListener, OnItemLongClickListener {
+@SuppressWarnings("deprecation")
+public class PostsActivity extends TabActivity implements OnScrollListener, OnMenuItemClickListener, OnItemClickListener, OnItemLongClickListener {
 	// private static final String TAG = "PostsActivity";
 
 	/**
@@ -45,10 +49,20 @@ public class PostsActivity extends Activity implements OnScrollListener, OnMenuI
 	 */
 	private static final String OAUTH_REDIRECT_URI = "frapp://register";
 	
+	private static final String TAB_MY_STREAM_TAG = "my-stream";
+	private static final String TAB_MY_STREAM_TITLE = "My Stream";
+	
+	private static final String TAB_MENTIONS_TAG = "mentions";
+	private static final String TAB_MENTIONS_TITLE = "Mentions";
+	
+	private static final String TAB_GLOBAL_TAG = "global";
+	private static final String TAB_GLOBAL_TITLE = "Global";
+	
 	private String accessToken;
 	private ListView postsListView;
 	private PostsAdapter postAdapter;
 	private PollThread pollThread;
+	private TabHost tabHost;
 
 	/**
 	 * The maximum number of posts we'll load into memory.
@@ -65,6 +79,12 @@ public class PostsActivity extends Activity implements OnScrollListener, OnMenuI
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_posts);
+        
+        
+        tabHost = getTabHost();
+        tabHost.addTab(tabHost.newTabSpec(TAB_MY_STREAM_TAG).setIndicator(TAB_MY_STREAM_TITLE).setContent(R.id.tab1));
+        tabHost.addTab(tabHost.newTabSpec(TAB_MENTIONS_TAG).setIndicator(TAB_MENTIONS_TITLE).setContent(R.id.tab2));
+        tabHost.addTab(tabHost.newTabSpec(TAB_GLOBAL_TAG).setIndicator(TAB_GLOBAL_TITLE).setContent(R.id.tab3));
         
         postAdapter = new PostsAdapter(this, R.layout.postlistitem, R.layout.waitlistitem);
         postsListView = (ListView) findViewById(R.id.postsListView);
