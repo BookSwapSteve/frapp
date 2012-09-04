@@ -102,10 +102,10 @@ public class PostsActivity extends TabActivity implements OnScrollListener, OnMe
         tabHost.setOnTabChangedListener(new TabHost.OnTabChangeListener() {
 			@Override
 			public void onTabChanged(String tabId) {
-				stopPollThread();
+				if (ready) stopPollThread();
 				stream = new Stream(tabId);
 				postsAdapter = streamAdapters.get(stream);
-				startPollThread();
+				if (ready) startPollThread();
 			}
 		});
         postsAdapter = myStreamPostsAdapter;
