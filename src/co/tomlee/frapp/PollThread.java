@@ -96,13 +96,30 @@ class PollThread extends Thread {
 	 * Executes a MorePostsTask on the main UI thread.
 	 */
 	private final class TaskRunnable implements Runnable {
-		private PostsSinceTask task = create();
+		/**
+		 * It's important that we don't initialize this until the run() call.
+		 */
+		private PostsSinceTask task;
+		private boolean cancelled;
 		
 		/**
 		 * Ask the task to cancel.
 		 */
 		public void cancel() {
-			task.cancel(true);
+			synchronized (this) {
+				if (task != null) {
+					task.cancel(true);
+				}
+				cancelled = true;
+			}
+		}
+		
+		private boolean isCancelled() {
+			final boolean cancelled;
+			synchronized (this) {
+				cancelled = this.cancelled;
+			}
+			return cancelled;
 		}
 		
 		/*
@@ -111,9 +128,16 @@ class PollThread extends Thread {
 		 */
 		@Override
 		public void run() {
-			task.cancel(true);
-			task = create();
-			task.execute();
+			//
+			// If we were cancelled by another thread, don't try to run anything.
+			//
+			if (!isCancelled()) {
+				cancel();
+				synchronized (this) {
+					task = create();
+					task.execute();
+				}
+			}
 		}
 		
 		/**
@@ -121,6 +145,9 @@ class PollThread extends Thread {
 		 * pull posts we haven't seen yet.
 		 */
 		private PostsSinceTask create() {
+			synchronized (this) {
+				cancelled = false;
+			}
 			return new PostsSinceTask(stream, postsAdapter, client, postsAdapter.getNewestPostId());
 		}
 	}
